@@ -20,9 +20,9 @@ class TaskList(ft.Container):
         self.empty_state = ft.Container(
             content=ft.Column(
                 [
-                    ft.Icon(ft.icons.CHECK_BOX_OUTLINE_BLANK, size=60, color=ft.colors.GREY_400),
-                    ft.Text("No tasks found", size=16, color=ft.colors.GREY_600),
-                    ft.Text("Add a new task to get started", size=14, color=ft.colors.GREY_400)
+                    ft.Icon(ft.Icons.CHECK_BOX_OUTLINE_BLANK, size=60, color=ft.Colors.GREY_400),
+                    ft.Text("No tasks found", size=16, color=ft.Colors.GREY_600),
+                    ft.Text("Add a new task to get started", size=14, color=ft.Colors.GREY_400)
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10,

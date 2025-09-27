@@ -17,7 +17,7 @@ class HomePage(ft.View):
                 controls=[
                     ft.Text("TaskSmart AI", size=30, weight="bold"),
                     ft.IconButton(
-                        icon=ft.icons.SETTINGS,
+                        icon=ft.Icons.SETTINGS,
                         tooltip="Settings",
                         on_click=self.show_settings
                     )

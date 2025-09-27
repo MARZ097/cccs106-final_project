@@ -35,14 +35,31 @@ class AppState:
         self.tasks = [task for task in self.tasks if task.id != task_id]
         self.save_tasks()
     
-    def toggle_task(self, task_id):
-        """Toggle the completion status of a task"""
+    def toggle_task(self, task_id, completed=None):
+        """Toggle or set the completion status of a task
+        
+        Args:
+            task_id: The ID of the task to toggle
+            completed: If provided, sets the completion status to this value;
+                      if None, toggles the current status
+        """
         for task in self.tasks:
             if task.id == task_id:
-                task.completed = not task.completed
+                if completed is not None:
+                    # Set to specified value
+                    task.completed = completed
+                else:
+                    # Toggle current value
+                    task.completed = not task.completed
+                    
                 task.updated_at = datetime.now().isoformat()
                 break
+                
+        # Force a save
         self.save_tasks()
+        
+        # Return the task for convenience
+        return next((t for t in self.tasks if t.id == task_id), None)
     
     def update_task(self, task_id, title=None, description=None, category=None):
         """Update task details"""
@@ -91,6 +108,17 @@ class AppState:
     
     def save_tasks(self):
         """Save tasks to storage"""
+        # Schedule the save to happen after current operations complete
+        self.page.run_task(self._save_tasks_async)
+    
+    def _generate_id(self):
+        """Generate a unique ID for a new task"""
+        if not self.tasks:
+            return 1
+        return max(task.id for task in self.tasks) + 1
+        
+    async def _save_tasks_async(self):
+        """Async method to save tasks to storage"""
         try:
             if not os.path.exists("storage"):
                 os.makedirs("storage")
@@ -100,9 +128,3 @@ class AppState:
                 json.dump(tasks_data, file, indent=2)
         except Exception as e:
             print(f"Error saving tasks: {e}")
-    
-    def _generate_id(self):
-        """Generate a unique ID for a new task"""
-        if not self.tasks:
-            return 1
-        return max(task.id for task in self.tasks) + 1

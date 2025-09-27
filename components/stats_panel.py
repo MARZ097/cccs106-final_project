@@ -8,9 +8,9 @@ class StatsPanel(ft.Container):
     def __init__(self, app_state):
         super().__init__()
         self.app_state = app_state
-        self.bgcolor = ft.colors.WHITE
+        self.bgcolor = ft.Colors.WHITE
         self.padding = 10
-        self.border = ft.border.all(1, ft.colors.GREY_300)
+        self.border = ft.border.all(1, ft.Colors.GREY_300)
         self.border_radius = 10
         self.margin = ft.margin.only(bottom=10)
         self.expand = False
@@ -21,9 +21,9 @@ class StatsPanel(ft.Container):
         # Simple stats row
         self.stats_row = ft.Row(
             [
-                self.create_stat_card("Total Tasks", "0", ft.colors.BLUE),
-                self.create_stat_card("Completed", "0", ft.colors.GREEN),
-                self.create_stat_card("Active", "0", ft.colors.AMBER),
+                self.create_stat_card("Total Tasks", "0", ft.Colors.BLUE),
+                self.create_stat_card("Completed", "0", ft.Colors.GREEN),
+                self.create_stat_card("Active", "0", ft.Colors.AMBER),
             ],
             alignment=ft.MainAxisAlignment.SPACE_AROUND,
         )
@@ -36,7 +36,7 @@ class StatsPanel(ft.Container):
         
         # Toggle button for expanded view
         self.expand_button = ft.IconButton(
-            icon=ft.icons.INSERT_CHART,
+            icon=ft.Icons.INSERT_CHART,
             tooltip="Show statistics",
             on_click=self.toggle_expanded
         )
@@ -65,7 +65,7 @@ class StatsPanel(ft.Container):
         return ft.Container(
             content=ft.Column(
                 [
-                    ft.Text(label, size=12, color=ft.colors.GREY_700),
+                    ft.Text(label, size=12, color=ft.Colors.GREY_700),
                     ft.Text(value, size=24, color=color, weight=ft.FontWeight.BOLD),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -92,7 +92,9 @@ class StatsPanel(ft.Container):
         if self.expanded:
             self.update_chart()
             
-        self.update()
+        # Only call update() if the control has been added to a page
+        if self.page:
+            self.update()
     
     def update_chart(self):
         """Generate and update the chart"""
@@ -146,23 +148,26 @@ class StatsPanel(ft.Container):
             # Fallback to text
             self.chart_container.content = ft.Text(
                 "Unable to generate chart. Try adding more tasks.",
-                color=ft.colors.GREY_600
+                color=ft.Colors.GREY_600
             )
             self.chart_container.height = 50
             self.chart_container.visible = True
+            
+        # Note: We don't call self.update() here because it's called by the parent method
     
     def toggle_expanded(self, e):
         """Toggle expanded view with chart"""
         self.expanded = not self.expanded
         
         if self.expanded:
-            self.expand_button.icon = ft.icons.INSERT_CHART_OUTLINED
+            self.expand_button.icon = ft.Icons.INSERT_CHART_OUTLINED
             self.expand_button.tooltip = "Hide statistics"
             self.update_chart()
         else:
-            self.expand_button.icon = ft.icons.INSERT_CHART
+            self.expand_button.icon = ft.Icons.INSERT_CHART
             self.expand_button.tooltip = "Show statistics"
             self.chart_container.height = 0
             self.chart_container.visible = False
         
+        # This will be called from an event handler, so the control should be on page
         self.update()

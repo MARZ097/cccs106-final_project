@@ -13,17 +13,17 @@ class TaskItem(ft.Container):
         
         # Category colors
         self.category_colors = {
-            "work": ft.colors.BLUE,
-            "personal": ft.colors.PURPLE,
-            "health": ft.colors.GREEN,
-            "finance": ft.colors.AMBER,
-            "education": ft.colors.DEEP_ORANGE,
-            "shopping": ft.colors.PINK,
-            "home": ft.colors.TEAL,
-            "social": ft.colors.INDIGO,
-            "travel": ft.colors.BROWN,
-            "entertainment": ft.colors.RED,
-            "uncategorized": ft.colors.GREY
+            "work": ft.Colors.BLUE,
+            "personal": ft.Colors.PURPLE,
+            "health": ft.Colors.GREEN,
+            "finance": ft.Colors.AMBER,
+            "education": ft.Colors.DEEP_ORANGE,
+            "shopping": ft.Colors.PINK,
+            "home": ft.Colors.TEAL,
+            "social": ft.Colors.INDIGO,
+            "travel": ft.Colors.BROWN,
+            "entertainment": ft.Colors.RED,
+            "uncategorized": ft.Colors.GREY
         }
         
         # Update UI based on task state
@@ -34,7 +34,7 @@ class TaskItem(ft.Container):
         # Get category color
         category_color = self.category_colors.get(
             self.task.category, 
-            ft.colors.GREY
+            ft.Colors.GREY
         )
         
         # Set UI based on completion status
@@ -42,12 +42,12 @@ class TaskItem(ft.Container):
             title_style = ft.TextStyle(
                 decoration=ft.TextDecoration.LINE_THROUGH,
                 decoration_thickness=2,
-                color=ft.colors.GREY
+                color=ft.Colors.GREY
             )
-            bg_color = ft.colors.GREY_100
+            bg_color = ft.Colors.GREY_100
         else:
             title_style = None
-            bg_color = ft.colors.WHITE
+            bg_color = ft.Colors.WHITE
             
         # Format date
         created_date = datetime.fromisoformat(self.task.created_at)
@@ -56,10 +56,11 @@ class TaskItem(ft.Container):
         # Create task card content
         self.content = ft.Row(
             [
-                # Checkbox for completion status
+                # Checkbox for completion status with direct page update
                 ft.Checkbox(
                     value=self.task.completed,
                     on_change=self.toggle_completed,
+                    data=self.task.id,  # Store task ID in data attribute
                 ),
                 
                 # Task content
@@ -79,7 +80,7 @@ class TaskItem(ft.Container):
                                     ft.Text(
                                         self.task.category,
                                         size=12,
-                                        color=ft.colors.WHITE,
+                                        color=ft.Colors.WHITE,
                                     ),
                                     bgcolor=category_color,
                                     border_radius=15,
@@ -93,7 +94,7 @@ class TaskItem(ft.Container):
                         ft.Text(
                             self.task.description or "No description",
                             size=14,
-                            color=ft.colors.GREY_700 if self.task.description else ft.colors.GREY_400,
+                            color=ft.Colors.GREY_700 if self.task.description else ft.Colors.GREY_400,
                             overflow=ft.TextOverflow.ELLIPSIS,
                         ) if self.task.description else ft.Container(height=0),
                         
@@ -101,26 +102,31 @@ class TaskItem(ft.Container):
                         ft.Text(
                             date_str,
                             size=12,
-                            color=ft.colors.GREY_500,
+                            color=ft.Colors.GREY_500,
                         ),
                     ],
                     spacing=5,
                     expand=True,
-                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 ),
                 
                 # Task actions
                 ft.Row(
                     [
-                        ft.IconButton(
-                            icon=ft.icons.EDIT,
-                            tooltip="Edit task",
-                            on_click=self.edit_task,
+                        ft.ElevatedButton(
+                            "Edit",
+                            icon=ft.Icons.EDIT,
+                            on_click=lambda e: self.edit_task(e),
+                            bgcolor=ft.Colors.BLUE_400,
+                            color=ft.Colors.WHITE,
+                            data=self.task.id,  # Store task ID for reference
                         ),
-                        ft.IconButton(
-                            icon=ft.icons.DELETE,
-                            tooltip="Delete task",
-                            on_click=self.delete_task,
+                        ft.ElevatedButton(
+                            "Delete",
+                            icon=ft.Icons.DELETE,
+                            bgcolor=ft.Colors.RED_400, 
+                            color=ft.Colors.WHITE,
+                            on_click=lambda e: self.delete_task(e),
+                            data=self.task.id,  # Store task ID for reference
                         ),
                     ]
                 )
@@ -130,37 +136,77 @@ class TaskItem(ft.Container):
         
         # Set container styling
         self.bgcolor = bg_color
-        self.border = ft.border.all(1, ft.colors.GREY_300)
+        self.border = ft.border.all(1, ft.Colors.GREY_300)
         
     def toggle_completed(self, e):
-        """Toggle task completion status"""
-        self.app_state.toggle_task(self.task.id)
-        self.task.completed = not self.task.completed
+        """Toggle task completion status with forced update"""
+        # Get checkbox state directly from the event
+        is_completed = e.control.value
+        
+        # Update the task in app state with explicit completed status
+        self.app_state.toggle_task(self.task.id, completed=is_completed)
+        
+        # Update local task object
+        self.task.completed = is_completed
+        
+        # Force UI update with immediate feedback
         self.update_ui()
+        self.app_state.page.update()
+        
+        # Show brief success message
+        self.app_state.page.snack_bar = ft.SnackBar(
+            content=ft.Text("Task status updated"),
+            bgcolor=ft.Colors.GREEN_700,
+            duration=1000,
+        )
+        self.app_state.page.snack_bar.open = True
+        
+        # Notify listeners for list refresh
         if self.on_change:
             self.on_change(e)
     
     def edit_task(self, e):
         """Show dialog to edit task"""
-        # Create a dialog for editing
+        # Create a dialog for editing with better UI
         title_field = ft.TextField(
             label="Task title",
             value=self.task.title,
-            autofocus=True
+            autofocus=True,
+            border=ft.InputBorder.OUTLINE,
+            filled=True,
+            expand=True,
         )
+        
         description_field = ft.TextField(
             label="Description (optional)",
             value=self.task.description or "",
             multiline=True,
             min_lines=3,
-            max_lines=5
+            max_lines=5,
+            border=ft.InputBorder.OUTLINE,
+            filled=True,
+            expand=True,
         )
+        
+        # Add feedback message
+        feedback = ft.Text("", size=14, color=ft.Colors.RED_500)
         
         def close_dlg(e):
             dialog.open = False
             self.app_state.page.update()
         
         def save_changes(e):
+            # Basic validation
+            if not title_field.value or title_field.value.isspace():
+                feedback.value = "Task title cannot be empty"
+                feedback.update()
+                return
+                
+            # Show saving indicator
+            save_button.text = "Saving..."
+            save_button.disabled = True
+            save_button.update()
+            
             # Update task with new values
             self.app_state.update_task(
                 self.task.id,
@@ -174,6 +220,14 @@ class TaskItem(ft.Container):
                     self.task = task
                     break
                     
+            # Show success message
+            self.app_state.page.snack_bar = ft.SnackBar(
+                content=ft.Text("Task updated successfully"),
+                bgcolor=ft.Colors.GREEN_700,
+                duration=1500,
+            )
+            self.app_state.page.snack_bar.open = True
+            
             # Update UI
             self.update_ui()
             close_dlg(e)
@@ -182,21 +236,39 @@ class TaskItem(ft.Container):
             if self.on_change:
                 self.on_change(e)
         
+        # Create buttons with better styling
+        cancel_button = ft.ElevatedButton(
+            "Cancel",
+            on_click=close_dlg,
+            color=ft.Colors.BLACK,
+            bgcolor=ft.Colors.GREY_300,
+        )
+        
+        save_button = ft.ElevatedButton(
+            "Save",
+            on_click=save_changes,
+            color=ft.Colors.WHITE,
+            bgcolor=ft.Colors.BLUE_500,
+        )
+        
         # Create dialog
         dialog = ft.AlertDialog(
             title=ft.Text("Edit Task"),
             content=ft.Column(
                 [
+                    ft.Text("Edit task details below:", size=14),
                     title_field,
                     description_field,
+                    feedback,
                 ],
                 width=400,
-                height=200,
+                height=250,
+                spacing=20,
                 scroll=ft.ScrollMode.AUTO,
             ),
             actions=[
-                ft.TextButton("Cancel", on_click=close_dlg),
-                ft.TextButton("Save", on_click=save_changes),
+                cancel_button,
+                save_button,
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
@@ -207,27 +279,51 @@ class TaskItem(ft.Container):
         self.app_state.page.update()
     
     def delete_task(self, e):
-        """Show confirmation and delete task"""
+        """Handle task delete with confirmation"""
         def close_dlg(e):
             dialog.open = False
             self.app_state.page.update()
         
         def confirm_delete(e):
-            # Delete the task
+            # Show immediate visual feedback
+            self.opacity = 0.5
+            dialog.open = False
+            self.app_state.page.update()
+            
+            # Delete immediately for better responsiveness
             self.app_state.delete_task(self.task.id)
-            close_dlg(e)
+            
+            # Show brief success message
+            self.app_state.page.snack_bar = ft.SnackBar(
+                content=ft.Text("Task deleted successfully"),
+                bgcolor=ft.Colors.GREEN_700,
+                duration=1500,
+            )
+            self.app_state.page.snack_bar.open = True
+            self.app_state.page.update()
             
             # Notify listeners
             if self.on_change:
                 self.on_change(e)
         
-        # Create dialog
+        # Create compact dialog with clear buttons
         dialog = ft.AlertDialog(
-            title=ft.Text("Confirm Delete"),
-            content=ft.Text(f"Are you sure you want to delete task: {self.task.title}?"),
+            modal=True,
+            title=ft.Text("Delete Task"),
+            content=ft.Text(f"Delete '{self.task.title}'?"),
             actions=[
-                ft.TextButton("Cancel", on_click=close_dlg),
-                ft.TextButton("Delete", on_click=confirm_delete),
+                ft.ElevatedButton(
+                    "Cancel",
+                    on_click=close_dlg,
+                    color=ft.Colors.BLACK,
+                    bgcolor=ft.Colors.GREY_300,
+                ),
+                ft.ElevatedButton(
+                    "Delete",
+                    on_click=confirm_delete,
+                    color=ft.Colors.WHITE,
+                    bgcolor=ft.Colors.RED_600,
+                ),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
